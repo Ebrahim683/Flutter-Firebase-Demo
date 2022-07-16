@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_flutter/ui/auth/LoginPage.dart';
+import 'package:firebase_flutter/ui/homepage/HomePage.dart';
 import 'package:firebase_flutter/util/UserNotifyUtil.dart';
 import 'package:flutter/material.dart';
 
@@ -20,17 +21,16 @@ class _SignUpPageState extends State<SignUpPage> {
   FirebaseAuth firebaseAuth = FirebaseAuth.instance;
   User? user = FirebaseAuth.instance.currentUser;
 
-  saveData(name, email, password) async {
+  saveData(uid, name, email, password) async {
     try {
-      DatabaseReference databaseReference =
-          FirebaseDatabase.instance.ref("users/${user!.uid}");
-      await databaseReference.set({
+      DatabaseReference databaseReference = FirebaseDatabase.instance.ref();
+      await databaseReference.child("users").child(uid).set({
         "name": name.toString(),
         "email": email.toString(),
       });
     } catch (e) {
       userNotifyUtil!.showSnackBar(e.toString());
-      print(e);
+      print("savedata: $e");
     }
   }
 
@@ -39,11 +39,12 @@ class _SignUpPageState extends State<SignUpPage> {
     var email = _emailController.text.trim();
     var password = _passwordController.text.trim();
     try {
-      await firebaseAuth.createUserWithEmailAndPassword(
+      var credential = await firebaseAuth.createUserWithEmailAndPassword(
           email: email, password: password);
-      saveData(name, email, password);
+      print("credential: ${credential.user?.uid}");
+      saveData(credential.user?.uid, name, email, password);
       Navigator.pushReplacement(
-          context, MaterialPageRoute(builder: (context) => const LoginPage()));
+          context, MaterialPageRoute(builder: (context) => const HomePage()));
     } on FirebaseAuthException catch (e) {
       print("createUserError: ${e.code}");
       userNotifyUtil!.showSnackBar(e.code);
