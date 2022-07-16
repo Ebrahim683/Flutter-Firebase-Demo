@@ -1,4 +1,5 @@
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_database/firebase_database.dart';
 import 'package:firebase_flutter/ui/auth/LoginPage.dart';
 import 'package:firebase_flutter/util/UserNotifyUtil.dart';
 import 'package:flutter/material.dart';
@@ -11,19 +12,36 @@ class SignUpPage extends StatefulWidget {
 }
 
 class _SignUpPageState extends State<SignUpPage> {
+  UserNotifyUtil? userNotifyUtil;
   final GlobalKey _globalKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   FirebaseAuth firebaseAuth = FirebaseAuth.instance;
-  UserNotifyUtil? userNotifyUtil;
+  User? user = FirebaseAuth.instance.currentUser;
+
+  saveData(name, email, password) async {
+    try {
+      DatabaseReference databaseReference =
+          FirebaseDatabase.instance.ref("users/${user!.uid}");
+      await databaseReference.set({
+        "name": name.toString(),
+        "email": email.toString(),
+      });
+    } catch (e) {
+      userNotifyUtil!.showSnackBar(e.toString());
+      print(e);
+    }
+  }
 
   createUser() async {
+    var name = _nameController.text.trim();
     var email = _emailController.text.trim();
     var password = _passwordController.text.trim();
     try {
       await firebaseAuth.createUserWithEmailAndPassword(
           email: email, password: password);
+      saveData(name, email, password);
       Navigator.pushReplacement(
           context, MaterialPageRoute(builder: (context) => const LoginPage()));
     } on FirebaseAuthException catch (e) {
